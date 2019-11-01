@@ -59,14 +59,83 @@ function getDaysInYear(year) {
     return isLeapYear(year) ? 366 : 365;
 }
 
+function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2)
+        month = '0' + month;
+    if (day.length < 2)
+        day = '0' + day;
+
+    return [year, month, day].join('-');
+}
+
+function isWeekend(dayIdx, params) {
+    const pivotDate = getDateFromDayOfYear(params, dayIdx);
+    const weekDay = pivotDate.getDay();
+    for (let weekendDayIndex = 0; weekendDayIndex < params.wochenende.length; weekendDayIndex++) {
+        const weekendDay = params.wochenende[weekendDayIndex];
+        if (weekendDay == weekDay) {
+            return true;
+        }
+    }
+    return false;
+}
+function isAlreadyBlocked(dayIdx, params) {
+    const pivotDate = formatDate(getDateFromDayOfYear(params, dayIdx));
+    for (let freierTagIndex = 0; freierTagIndex < params.urlaub.length; freierTagIndex++) {
+        const freierTag = params.urlaub[freierTagIndex];
+        if (freierTag == pivotDate) {
+            return true;
+        }
+    }
+    return false;
+}
+function isFeiertag(dayIdx, params, feiertage) {
+    const allFeiertage = feiertage[params.bundesland];
+    const pivotDate = formatDate(getDateFromDayOfYear(params, dayIdx));
+    for (let feiertagsName in allFeiertage) {
+        if (allFeiertage[feiertagsName].datum == pivotDate) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function isFreeDay(dayInYear, feiertage, params) {
+    return isWeekend(dayInYear, params) || isAlreadyBlocked(dayInYear, params) || isFeiertag(dayInYear, params, feiertage);
+}
 
 function getFreeDayBlock(feiertage, params, dayInYearToStart, lengthOfNewBlock) {
-
-    console.log('TODO: actually implement this method');
+    let firstFreeDay = dayInYearToStart;
+    let lastFreeDay = dayInYearToStart + lengthOfNewBlock - 1;
+    for (let i = 1; i < 1000; i++) {
+        const dayIdx = firstFreeDay - i;
+        if (!isFreeDay(dayIdx, feiertage, params)) {
+            firstFreeDay = dayIdx + 1;
+            break;
+        }
+    }
+    for (let i = 1; i < 1000; i++) {
+        const dayIdx = lastFreeDay + i;
+        if (!isFreeDay(dayIdx, feiertage, params)) {
+            lastFreeDay = dayIdx - 1;
+            break;
+        }
+    }
+    let freeDays = 0;
+    for (let i = firstFreeDay; i <= lastFreeDay; i++) {
+        if (isFreeDay(i, feiertage, params)) {
+            freeDays += 1;
+        }
+    }
     return {
-        firstFreeDay: 123,
-        lastFreeDay: 123,
-        daysAlreadyFree: 24
+        firstFreeDay: firstFreeDay,
+        lastFreeDay: lastFreeDay,
+        daysAlreadyFree: freeDays
     }
 }
 
@@ -76,17 +145,46 @@ function getDateFromDayOfYear(params, dayInYear) {
     return new Date(date.setDate(dayInYear)); // add the number of days
 }
 
+Vue.filter('round', function (value, decimals) {
+    if (!value) {
+        value = 0;
+    }
+
+    if (!decimals) {
+        decimals = 0;
+    }
+
+    value = Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+    return value;
+});
 
 const Computer = Vue.component('computer-tag', {
     template: `<div>
         <div>params: {{JSON.stringify(getParams())}} </div>
-        <div><router-link :to="{ name: 'comp', params: urlify(getParams()) }">A link to this very page</router-link></div>
-        <div><button v-on:click="startScoreClicked()">Begin scoring process</button>  ( {{progressCurrent}} / {{progressTotal}} )</div>
-        <ul>
-            <li v-for="score in computedSortedResults" v-bind:class="{ highestscore: score.score >= 4.0 , highscore: score.score >= 3.0 , mediumscore: score.score > 2.0 , lowscore: score.score <= 2.0  }" v-if="score.score > 1.8 || showLowScore">
-                {{ JSON.stringify(score) }}
-            </li>
-        </ul>
+        <div><router-link :to="{ name: 'comp', params: urlify(getParams()) }">Dieser Link kann bookmarked werden</router-link></div>
+        <div><button type="button" class="btn btn-primary" v-on:click="startScoreClicked()">Beginne Bewertungslauf für Jahr {{getParams().jahr}}</button>  ( {{progressCurrent}} / {{progressTotal}} )</div>
+        
+<div class="table-responsive">
+        <table class="table">
+  <thead>
+    <tr>
+      <th scope="col">Datum Start</th>
+      <th scope="col">Datum End</th>
+      <th scope="col">Urlaubstage</th>
+      <th scope="col">Bewertung</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr v-for="score in computedSortedResults" v-bind:class="{ highestscore: score.score >= 4.0 , highscore: score.score >= 3.0 , mediumscore: score.score > 2.0 , lowscore: score.score <= 2.0  }" v-if="score.score > 1.8 || showLowScore">
+      <th>{{score.ersterTag}}</th>
+      <td>{{score.letzterTag}}</td>
+      <td>{{score.brueckenTage}}</td>
+      <td>{{score.score | round(3)}}</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
     </div>`,
     data: function () {
         return {
@@ -102,7 +200,7 @@ const Computer = Vue.component('computer-tag', {
             const selectedYear = orElseNum(this.$route.params.jahr, curYear)
             return {
                 jahr: selectedYear,
-                reichweite: orElseNum(this.$route.params.tagereichweite, 10),
+                reichweite: orElseNum(this.$route.params.tagereichweite, 20),
                 bundesland: orElseStr(this.$route.params.bundesland, 'BW'),
                 wochenende: orElseNumArray(this.$route.params.wochenende, [0, 6]),
                 urlaub: orElseDateStringArray(this.$route.params.urlaub, ['' + selectedYear + '-12-24', '' + selectedYear + '-12-31'])
@@ -128,31 +226,52 @@ const Computer = Vue.component('computer-tag', {
         },
         scoreAll: async function (params) {
             let feiertage = await getFeiertage(params.jahr);
+            const alreadyFround = {};
+
+            console.log(getDateFromDayOfYear(params, 122));
+            console.log(getFreeDayBlock(feiertage, params, 122, 2));
+
             this.progressCurrent = 0;
             const totalDays = getDaysInYear(params.jahr);
-            for (let d = 0; d < totalDays; d++) {
+            for (let d = 1; d <= totalDays; d++) {
                 for (let r = 1; r <= params.reichweite; r++) {
                     if (d + r <= totalDays) {
-                        //TODO: push as sorted list
+                        if (isFreeDay(d, feiertage, params)) {
+                            this.progressCurrent += 1;
+                            continue;
+                        }
                         const freeBlock = getFreeDayBlock(feiertage, params, d, r);
                         const firstFreeDay = freeBlock.firstFreeDay;
                         const lastFreeDay = freeBlock.lastFreeDay;
                         const freieTage = freeBlock.lastFreeDay - freeBlock.firstFreeDay + 1;
                         const brueckentage = freieTage - freeBlock.daysAlreadyFree //decrease by already free days;
-                        this.computedSortedResults.push({
-                            seedTag: getDateFromDayOfYear(params, d),
-                            ersterTag: getDateFromDayOfYear(params, firstFreeDay),
-                            letzterTag: getDateFromDayOfYear(params, lastFreeDay),
-                            reichweite: r,
-                            brueckenTage: brueckentage,
-                            freieTage: freieTage,
-                            score: freieTage / brueckentage
-                        });
-
+                        const sd = formatDate(getDateFromDayOfYear(params, d));
+                        const ed = formatDate(getDateFromDayOfYear(params, firstFreeDay));
+                        const ld = formatDate(getDateFromDayOfYear(params, lastFreeDay));
+                        if (alreadyFround[ed] == null) {
+                            alreadyFround[ed] = {};
+                        }
+                        if (alreadyFround[ed][ld] == null) {
+                            this.computedSortedResults.push({
+                                seedTag: sd,
+                                ersterTag: ed,
+                                letzterTag: ld,
+                                reichweite: r,
+                                anzahlFreieTage: freieTage,
+                                brueckenTage: brueckentage,
+                                freieTage: freieTage,
+                                score: brueckentage > 0 ? freieTage / brueckentage : -1
+                            });
+                            alreadyFround[ed][ld] = true;
+                        } else {
+                            console.log('skipping duplicate : ' + ed + " : " + ld);
+                        }
                         this.progressCurrent += 1;
                     }
                 }
             }
+
+            this.computedSortedResults.sort(function (a, b) { return b.score - a.score });
             console.log('done scoring');
         }
     },
@@ -167,12 +286,18 @@ const Computer = Vue.component('computer-tag', {
 
 const routes = [
     { path: '/comp/j/:jahr/b/:bundesland/r/:reichweite/w/:wochenende/u/:urlaub', name: 'comp', component: Computer },
-    { path: '*', component: Computer }
+    {
+        path: '*', redirect: to => {
+            const year = (new Date()).getFullYear();
+            return `/comp/j/${year}/b/BW/r/20/w/0,6/u/${year}-12-24,${year}-12-31`
+        }
+    }
 ]
 
 const router = new VueRouter({
     routes // short for `routes: routes`
 })
+
 
 const app = new Vue({
     router

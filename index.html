@@ -4,6 +4,9 @@
 <head>
     <meta charset="utf-8">
     <title>brueckentag-gen</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="brueckentag.css">
 </head>
 
 <body>
@@ -11,18 +14,8 @@
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
     <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
 
-    <div id="app">
-        <h1>Hello App!</h1>
-        <p>
-            <!-- use router-link component for navigation. -->
-            <!-- specify the link by passing the `to` prop. -->
-            <!-- `<router-link>` will be rendered as an `<a>` tag by default -->
-            <router-link to="/foo">Go to Foo</router-link>
-            <router-link to="/bar">Go to Bar</router-link>
-            <router-link to="/other">Go to Computer</router-link>
-        </p>
-        <!-- route outlet -->
-        <!-- component matched by the route will render here -->
+    <div id="app" class="container">
+        <h1>Drücke den Button um die Brückentage für das Jahr zu berechnen.</h1>
         <router-view></router-view>
     </div>
     <script src="brueckentag.js"></script>
