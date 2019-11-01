@@ -227,6 +227,7 @@ const Computer = Vue.component('computer-tag', {
         scoreAll: async function (params) {
             let feiertage = await getFeiertage(params.jahr);
             const alreadyFround = {};
+            this.computedSortedResults = [];
 
             console.log(getDateFromDayOfYear(params, 122));
             console.log(getFreeDayBlock(feiertage, params, 122, 2));
