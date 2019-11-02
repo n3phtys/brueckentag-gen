@@ -135,7 +135,7 @@ function getFreeDayBlock(feiertage, params, dayInYearToStart, lengthOfNewBlock) 
     return {
         firstFreeDay: firstFreeDay,
         lastFreeDay: lastFreeDay,
-        daysAlreadyFree: freeDays
+        daysAlreadyFree: (firstFreeDay < dayInYearToStart && isFreeDay(lastFreeDay, feiertage, params)) ? (freeDays) : (- 1)
     }
 }
 
