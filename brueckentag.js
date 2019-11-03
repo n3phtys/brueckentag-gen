@@ -139,6 +139,24 @@ function getFreeDayBlock(feiertage, params, dayInYearToStart, lengthOfNewBlock) 
     }
 }
 
+function translateDaysToNewYear(newYear, arrayOfOldIsoDateStrings) {
+    const r = [];
+    const delimiter = '-';
+    console.log('translating urlaub to new year');
+    console.log(arrayOfOldIsoDateStrings);
+    for (let i = 0; i < arrayOfOldIsoDateStrings.length; i++) {
+        const oldDate = arrayOfOldIsoDateStrings[i];
+        console.log(oldDate);
+        const arr = oldDate.split(delimiter);
+        console.log(arr);
+        const newDate = '' + newYear + delimiter + arr[1] + delimiter + arr[2];
+        r.push(newDate);
+    }
+    console.log(r);
+    console.log('done translating');
+    return r;
+}
+
 
 function getDateFromDayOfYear(params, dayInYear) {
     const date = new Date(params.jahr, 0); // initialize a date in `year-01-01`
@@ -159,31 +177,45 @@ Vue.filter('round', function (value, decimals) {
 });
 
 const Computer = Vue.component('computer-tag', {
-    template: `<div>
-        <div>params: {{JSON.stringify(getParams())}} </div>
-        <div><router-link :to="{ name: 'comp', params: urlify(getParams()) }">Dieser Link kann bookmarked werden</router-link></div>
-        <div><button type="button" class="btn btn-primary" v-on:click="startScoreClicked()">Beginne Bewertungslauf für Jahr {{getParams().jahr}}</button>  ( {{progressCurrent}} / {{progressTotal}} )</div>
+    template: `
+    <div>
+        <div>Verwendete Paramter: {{JSON.stringify(getParams())}} </div>
         
-<div class="table-responsive">
-        <table class="table">
-  <thead>
-    <tr>
-      <th scope="col">Datum Start</th>
-      <th scope="col">Datum End</th>
-      <th scope="col">Urlaubstage</th>
-      <th scope="col">Bewertung</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr v-for="score in computedSortedResults" v-bind:class="{ highestscore: score.score >= 4.0 , highscore: score.score >= 3.0 , mediumscore: score.score > 2.0 , lowscore: score.score <= 2.0  }" v-if="score.score > 1.8 || showLowScore">
-      <th>{{score.ersterTag}}</th>
-      <td>{{score.letzterTag}}</td>
-      <td>{{score.brueckenTage}}</td>
-      <td>{{score.score | round(3)}}</td>
-    </tr>
-  </tbody>
-</table>
-</div>
+        <div class="form-group">
+             <label for="bundesland">Bundesland:</label>
+            <select id="bundesland" class="form-control" v-model="selectedBundesland">
+                <option disabled value="">Bitte ein Bundesland auswählen</option>
+                <option v-for="bl in bundeslaender">{{bl}}</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="jahr">Jahr:</label>
+            <input type="number" class="form-control" id="jahr" v-model="selectedYear">
+        </div>
+        <div v-if="selectedYear != previousYear || selectedBundesland != previousBundesland">
+            <button type="submit" class="btn btn-default" v-on:click="saveChanges()">Jahr und Bundesland speichern</button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Datum Start</th>
+                        <th scope="col">Datum Ende</th>
+                        <th scope="col">Urlaubstage</th>
+                        <th scope="col">Bewertung (Freie Tage / Urlaubstage)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="score in computedSortedResults" v-bind:class="{ highestscore: score.score >= 4.0 , highscore: score.score >= 3.0 , mediumscore: score.score > 2.0 , lowscore: score.score <= 2.0  }" v-if="score.score > 1.8 || showLowScore">
+                        <th>{{score.ersterTag}}</th>
+                        <td>{{score.letzterTag}}</td>
+                        <td>{{score.brueckenTage}}</td>
+                        <td>{{score.score | round(3)}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
     </div>`,
     data: function () {
@@ -191,7 +223,12 @@ const Computer = Vue.component('computer-tag', {
             progressTotal: 1, //how many day combinations to score
             progressCurrent: 1, //how many are already scored
             computedSortedResults: [], //the finished scored results, sorted descendingly
-            showLowScore: false, //score <= 1.8 will not be shown by default (to keep DOM small)
+            showLowScore: false, //score <= 1.8 will not be shown by default (to keep DOM small),
+            bundeslaender: [],
+            selectedYear: this.getParams().jahr,
+            selectedBundesland: this.getParams().bundesland,
+            previousYear: this.getParams().jahr,
+            previousBundesland: this.getParams().bundesland,
         };
     },
     methods: {
@@ -213,6 +250,21 @@ const Computer = Vue.component('computer-tag', {
             }
             console.log(out);
             return out;
+        },
+        loadBundeslaender: async function () {
+            const feiertage = await getFeiertage(this.getParams().jahr);
+            this.bundeslaender = [];
+            for (let bl in feiertage) {
+                this.bundeslaender.push(bl);
+            }
+        },
+        saveChanges: function () {
+            //change given url 
+            const newParams = this.getParams();
+            newParams.jahr = this.selectedYear;
+            newParams.urlaub = translateDaysToNewYear(newParams.jahr, newParams.urlaub);
+            newParams.bundesland = this.selectedBundesland;
+            router.push({ name: 'comp', params: this.urlify(newParams) });
         },
         startScoreClicked: function () {
             const params = this.getParams();
@@ -265,7 +317,7 @@ const Computer = Vue.component('computer-tag', {
                             });
                             alreadyFround[ed][ld] = true;
                         } else {
-                            console.log('skipping duplicate : ' + ed + " : " + ld);
+                            //console.log('skipping duplicate : ' + ed + " : " + ld);
                         }
                         this.progressCurrent += 1;
                     }
@@ -273,15 +325,23 @@ const Computer = Vue.component('computer-tag', {
             }
 
             this.computedSortedResults.sort(function (a, b) { return b.score - a.score });
-            console.log('done scoring');
+            //console.log('done scoring');
         }
     },
     watch: {
         $route(to, from) {
-            console.log('route switched:');
-            console.log(from);
-            console.log(to);
+            //console.log('route switched:');
+            //console.log(from);
+            //console.log(to);
+            this.previousYear = this.getParams().jahr,
+                this.previousBundesland = this.getParams().bundesland,
+                this.startScoreClicked();
         }
+    },
+    mounted: function () {
+        //console.log('was mounted');
+        this.loadBundeslaender();
+        this.startScoreClicked();
     }
 });
 
@@ -303,3 +363,4 @@ const router = new VueRouter({
 const app = new Vue({
     router
 }).$mount('#app')
+
