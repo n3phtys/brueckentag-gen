@@ -179,7 +179,6 @@ Vue.filter('round', function (value, decimals) {
 const Computer = Vue.component('computer-tag', {
     template: `
     <div>
-        <div>Verwendete Paramter: {{JSON.stringify(getParams())}} </div>
         
         <div class="form-group">
              <label for="bundesland">Bundesland:</label>
