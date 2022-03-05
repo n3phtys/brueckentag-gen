@@ -24,8 +24,8 @@
         <th scope="col">Datum Start</th>
         <th scope="col">Datum Ende</th>
         <th scope="col">Freie Tage</th>
-        <th scope="col">Urlaubstage</th>
-        <th scope="col">Bewertung (Freie Tage / Urlaubstage)</th>
+        <th scope="col">Tage Urlaub</th>
+        <th scope="col">Bewertung</th>
       </tr>
     </thead>
     <tbody>
