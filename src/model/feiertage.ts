@@ -20,7 +20,7 @@ export async function getFeiertage(year): Promise<any> {
   }
 }
 
-export function scoreAll(year: number, feiertage: any, params: Params): Day[] {
+export function scoreAll(feiertage: any, params: Params): Day[] {
   const alreadyFround = {};
   let results: Day[] = [];
   const start = new Date();
@@ -66,6 +66,7 @@ export function scoreAll(year: number, feiertage: any, params: Params): Day[] {
     "computation done after:",
     start.toString(),
     new Date().toString(),
+    "items: " + output.length,
   ]);
   return output;
 }

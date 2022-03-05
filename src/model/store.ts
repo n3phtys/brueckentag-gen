@@ -6,7 +6,7 @@ import { Params, synchronizeFromUrlToParams } from "./router";
 //reinitialize once with exact params
 export let params: Params = synchronizeFromUrlToParams();
 
-export const computedSortedResults = writable([] as Day[]);
+export const vacationOptions = writable([] as Day[]);
 export const bundeslaender = writable([params.bundesland] as string[]);
 export const selectedYear = writable(params.jahr);
 export const previousYear = writable(params.jahr);
@@ -27,11 +27,10 @@ window.addEventListener(
 
 export async function computeRemoteDataForYear(): Promise<any> {
   const year: number = params.jahr;
-  let existing = await getFeiertage(year);
-  console.log({ existing });
-  let bls = Object.keys(existing);
-  console.log({ bls });
-  bundeslaender.set(bls);
-  scoreAll(year, existing, params);
-  return existing;
+  let holidaysOfYear = await getFeiertage(year);
+  console.log({ existing: holidaysOfYear });
+  bundeslaender.set(Object.keys(holidaysOfYear));
+  const results = scoreAll(holidaysOfYear, params);
+  vacationOptions.set(results);
+  return holidaysOfYear;
 }

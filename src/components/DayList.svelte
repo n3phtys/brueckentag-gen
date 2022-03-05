@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { computedSortedResults } from "../model/store";
+  import { vacationOptions } from "../model/store";
 
   export let showLowScore = false; //score <= 1.8 will not be shown by default (to keep DOM small),
   export function round(decimals: number, value: number): string {
@@ -23,12 +23,13 @@
       <tr>
         <th scope="col">Datum Start</th>
         <th scope="col">Datum Ende</th>
+        <th scope="col">Freie Tage</th>
         <th scope="col">Urlaubstage</th>
         <th scope="col">Bewertung (Freie Tage / Urlaubstage)</th>
       </tr>
     </thead>
     <tbody>
-      {#each $computedSortedResults as score}
+      {#each $vacationOptions as score}
         {#if score.score > 1.8 || showLowScore}
           <tr
             class={score.score >= 4.0
@@ -41,6 +42,7 @@
           >
             <th>{score.ersterTag}</th>
             <td>{score.letzterTag}</td>
+            <td>{score.anzahlFreieTage}</td>
             <td>{score.brueckenTage}</td>
             <td>{round(3, score.score)}</td>
           </tr>
